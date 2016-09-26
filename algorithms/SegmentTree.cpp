@@ -7,7 +7,8 @@
 // tubo28, セグメントツリー, http://tubo28.me/algorithm/segtree-rmq/
 
 // verify
-// main(): AOJ DSL_2_A: Range Minimum Query
+// AOJ DSL_2_A: Range Minimum Query
+// AOJ DSL_2_B: Range Sum Query 
 
 #include <iostream>
 #include <vector>
@@ -22,6 +23,7 @@ template<typename T, int VALUE_N>
 class SegmentTree {
 	const T INIT_VALUE;
 	const function<T(T, T)> mergeFunc;
+	const function<T(T, T)> updateFunc;
 	const int LEAF_N = 1 << (int)(ceil(log2(VALUE_N)));
 	const int NODES_N = LEAF_N * 2 - 1;
 	vector<T> nodes;
@@ -37,7 +39,11 @@ class SegmentTree {
 		return mergeFunc(query(a, b, childLIndex(k), l, mid), query(a, b, childRIndex(k), mid, r));
 	}
 public:
-	SegmentTree(T iniValue, function<T(T,T)> mergeF) : nodes(NODES_N), INIT_VALUE(iniValue), mergeFunc(mergeF) {
+	SegmentTree(T iniValue, function<T(T, T)> mergeF, function<T(T,T)> updateF) : 
+		nodes(NODES_N), 
+		INIT_VALUE(iniValue), 
+		mergeFunc(mergeF),
+		updateFunc(updateF){
 		for (int i = leafIndex(0); i < leafIndex(LEAF_N); i++) {
 			nodes[i] = INIT_VALUE;
 		}
@@ -45,10 +51,11 @@ public:
 			nodes[i] = mergeFunc(nodes[childLIndex(i)], nodes[childRIndex(i)]);
 		}
 	}
-	void update(int valueI, T value) {
+	void update(int valueI, T newValue) {
 		int nodeI = leafIndex(valueI);
-		nodes[nodeI] = value;
-		while(nodeI > 0) {
+		T oldValue = nodes[nodeI];
+		nodes[nodeI] = updateFunc(oldValue, newValue);
+		while (nodeI > 0) {
 			nodeI = parentIndex(nodeI);
 			nodes[nodeI] = mergeFunc(nodes[childLIndex(nodeI)], nodes[childRIndex(nodeI)]);
 		}
@@ -61,9 +68,9 @@ public:
 
 int main() {
 	using IntType = long long;
-	constexpr IntType inf = ((IntType)1 << 31) - 1;
 	constexpr int MAX_ELEM_NUM = 100001;
-	SegmentTree<IntType, MAX_ELEM_NUM> s(inf, [](IntType l, IntType r) {return min(l, r); });
+	auto addfunc = [](IntType a, IntType b) {return a + b; };
+	SegmentTree<IntType, MAX_ELEM_NUM> s(0, addfunc, addfunc);
 	int elemNum, queryNum;
 	int com;
 	IntType x, y;
