@@ -1,0 +1,85 @@
+// Segment Tree
+// 0-indexed, update, query
+// 参考をもとにtemplateにしてみた。min,max,sumなら対応できる。
+
+// 参考
+// Takuya Akiba, プログラミングコンテストでのデータ構造, http://www.slideshare.net/iwiwi/ss-3578491
+// tubo28, セグメントツリー, http://tubo28.me/algorithm/segtree-rmq/
+
+// verify
+// main(): AOJ DSL_2_A: Range Minimum Query
+
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <limits>
+#include <functional>
+#include <algorithm>
+
+using namespace std;
+
+template<typename T, int VALUE_N>
+class SegmentTree {
+	const T INIT_VALUE;
+	const function<T(T, T)> mergeFunc;
+	const int LEAF_N = 1 << (int)(ceil(log2(VALUE_N)));
+	const int NODES_N = LEAF_N * 2 - 1;
+	vector<T> nodes;
+	inline int leafIndex(int i) { return LEAF_N - 1 + i; }
+	inline int parentIndex(int i) { return (i - 1) / 2; }
+	inline int childLIndex(int i) { return 2 * i + 1; }
+	inline int childRIndex(int i) { return 2 * i + 2; }
+	// [a,b) query. current k node == [l,r)
+	T query(int a, int b, int k, int l, int r) {
+		if (r <= a || b <= l) return INIT_VALUE;
+		if (a <= l && r <= b) return nodes[k];
+		int mid = (l + r) / 2;
+		return mergeFunc(query(a, b, childLIndex(k), l, mid), query(a, b, childRIndex(k), mid, r));
+	}
+public:
+	SegmentTree(T iniValue, function<T(T,T)> mergeF) : nodes(NODES_N), INIT_VALUE(iniValue), mergeFunc(mergeF) {
+		for (int i = leafIndex(0); i < leafIndex(LEAF_N); i++) {
+			nodes[i] = INIT_VALUE;
+		}
+		for (int i = parentIndex(leafIndex(LEAF_N - 1)); i >= 0; i--) {
+			nodes[i] = mergeFunc(nodes[childLIndex(i)], nodes[childRIndex(i)]);
+		}
+	}
+	void update(int valueI, T value) {
+		int nodeI = leafIndex(valueI);
+		nodes[nodeI] = value;
+		while(nodeI > 0) {
+			nodeI = parentIndex(nodeI);
+			nodes[nodeI] = mergeFunc(nodes[childLIndex(nodeI)], nodes[childRIndex(nodeI)]);
+		}
+	}
+	// [a,b) query
+	T query(int a, int b) {
+		return query(a, b, 0, 0, LEAF_N);
+	}
+};
+
+int main() {
+	using IntType = long long;
+	constexpr IntType inf = ((IntType)1 << 31) - 1;
+	constexpr int MAX_ELEM_NUM = 100001;
+	SegmentTree<IntType, MAX_ELEM_NUM> s(inf, [](IntType l, IntType r) {return min(l, r); });
+	int elemNum, queryNum;
+	int com;
+	IntType x, y;
+	cin >> elemNum >> queryNum;
+	for (int qI = 0; qI < queryNum; qI++) {
+		cin >> com >> x >> y;
+		switch (com) {
+		case 0:
+			s.update(x, y);
+			break;
+		case 1:
+			IntType ret = s.query(x, y + 1);
+			cout << ret << endl;
+			break;
+		}
+	}
+
+	return 0;
+}
